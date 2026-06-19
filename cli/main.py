@@ -13,7 +13,7 @@ from core.reporter import HTMLReporter
 
 @click.group()
 def cli():
-    """QualiAI — AI-Powered Testing Agent.
+    """QualiAI -- AI-Powered Testing Agent.
 
     输入自然语言描述，AI 自动执行测试并生成报告。
     """
@@ -29,35 +29,31 @@ def cli():
 @click.option("--scenario", "-s", default="", help="场景文件路径")
 def run(description, url, model, api_key, output, scenario):
     """运行测试：自然语言描述测试场景"""
-    click.echo("🧪 QualiAI 测试启动")
-    click.echo("═" * 40)
+    click.echo("QualiAI test starting")
+    click.echo("=" * 40)
 
-    # 1. 规划
     planner = AITestPlanner(model=model, api_key=api_key)
     steps = planner.plan(description, base_url=url)
 
-    click.echo(f"\n📋 生成 {len(steps)} 个测试步骤:")
+    click.echo("\nGenerated %d test steps:" % len(steps))
     for s in steps:
-        icon = {"navigate": "🌐", "click": "🖱", "type": "⌨️",
-                "assert": "🔍", "wait": "⏳", "scroll": "📜"}.get(s["action"], "•")
-        click.echo(f"  {icon} [{s['step']}] {s['action']}: {s.get('desc', '')}")
+        click.echo("  [%d] %s: %s" % (s["step"], s["action"], s.get("desc", "")))
 
-    # 2. 执行
-    click.echo(f"\n🚀 开始执行...")
+    click.echo("\nExecuting...")
     executor = PlaywrightExecutor(headless=True)
     results = executor.run(steps)
 
-    # 3. 输出
     passed = sum(1 for r in results if r.get("passed"))
     total = len(results)
-    click.echo(f"\n📊 结果: {passed}/{total} 通过 ({total - passed} 失败)")
+    click.echo("\nResult: %d/%d passed (%d failed)" % (passed, total, total - passed))
 
-    # 4. 报告
+    if hasattr(executor, '_self_heal_count') and executor._self_heal_count > 0:
+        click.echo("Self-healed selectors: %d" % executor._self_heal_count)
+
     report_dir = output or os.path.join(os.getcwd(), "reports")
     reporter = HTMLReporter(report_dir)
-    report_path = reporter.generate(description, steps, results)
-    click.echo(f"\n📄 报告已生成: {report_path}")
-    click.echo(f"   打开: file://{report_path}")
+    report_path = reporter.generate(description or "test", steps, results)
+    click.echo("\nReport: file://" + report_path)
 
 
 @cli.command()
@@ -69,23 +65,23 @@ def replay(scenario_path, output):
     with open(scenario_path) as f:
         scenario = json.load(f)
 
-    click.echo(f"🔄 重播场景: {scenario.get('name', 'unnamed')}")
-    click.echo("═" * 40)
+    click.echo("Replaying: %s" % scenario.get("name", "unnamed"))
+    click.echo("=" * 40)
 
     steps = scenario.get("steps", [])
-    click.echo(f"\n📋 {len(steps)} 个步骤")
+    click.echo("%d steps" % len(steps))
 
     executor = PlaywrightExecutor(headless=True)
     results = executor.run(steps)
 
     passed = sum(1 for r in results if r.get("passed"))
     total = len(results)
-    click.echo(f"\n📊 结果: {passed}/{total} 通过")
+    click.echo("Result: %d/%d passed" % (passed, total))
 
     report_dir = output or os.path.join(os.getcwd(), "reports")
     reporter = HTMLReporter(report_dir)
     report_path = reporter.generate(scenario.get("name", "replay"), steps, results)
-    click.echo(f"\n📄 报告: file://{report_path}")
+    click.echo("Report: file://" + report_path)
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ import os
 import re
 from typing import Optional
 
-DEFAULT_API_KEY = ***"DEEPSEEK_API_KEY", "sk-f0e…83cf")
+DEFAULT_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "sk-f0e83cf")
 DEFAULT_BASE_URL = "https://api.deepseek.com/v1"
 DEFAULT_MODEL = "deepseek-chat"
 
