@@ -1,0 +1,13 @@
+{
+  "name": "登录功能基础测试",
+  "description": "测试登录页面：输入正确用户名密码，验证登录成功",
+  "url": "https://example.com/login",
+  "steps": [
+    {"step": 1, "action": "navigate", "selector": "", "value": "https://example.com/login", "desc": "打开登录页面", "assert": {"type": "", "expected": ""}},
+    {"step": 2, "action": "type", "selector": "input[name=username],input[name=email]", "value": "admin", "desc": "输入用户名", "assert": {"type": "", "expected": ""}},
+    {"step": 3, "action": "type", "selector": "input[name=password],input[type=password]", "value": "password123", "desc": "输入密码", "assert": {"type": "", "expected": ""}},
+    {"step": 4, "action": "click", "selector": "button[type=submit],button:has-text('登录')", "value": "", "desc": "点击登录按钮", "assert": {"type": "", "expected": ""}},
+    {"step": 5, "action": "assert", "selector": "", "value": "", "desc": "验证登录成功", "assert": {"type": "url_contains", "expected": "/dashboard"}},
+    {"step": 6, "action": "assert", "selector": "", "value": "", "desc": "验证页面加载成功", "assert": {"type": "text_exists", "expected": "欢迎"}}
+  ]
+}
