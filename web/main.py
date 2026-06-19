@@ -142,8 +142,8 @@ async def _execute_task(task_id: str, steps: list[dict], target_type: str, devic
                 await _send_result(task_id, i, result)
         else:
             executor = PlaywrightExecutor(headless=True)
-            # PlaywrightExecutor.run() handles init/cleanup internally
-            all_results = executor.run(steps)
+            # 使用 async 版本避免嵌套事件循环
+            all_results = await executor._run_async(steps)
             for i, result in enumerate(all_results):
                 await _send_progress(task_id, i, total, steps[i] if i < len(steps) else {})
                 await _send_result(task_id, i, result)

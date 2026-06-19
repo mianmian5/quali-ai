@@ -1,0 +1,26 @@
+{
+  "name": "搜索功能测试",
+  "description": "测试站内搜索功能：输入关键词，验证搜索结果正确展示",
+  "url": "https://example.com",
+  "steps": [
+    {"step": 1, "action": "navigate", "selector": "", "value": "https://example.com", "desc": "打开首页", "assert": {"type": "", "expected": ""}},
+    {"step": 2, "action": "wait", "selector": "", "value": "2000", "desc": "等待页面加载", "assert": {"type": "", "expected": ""}},
+    {"step": 3, "action": "type", "selector": "input[type=search],input[name=q],input[name=keyword],input[placeholder*=搜索],input[placeholder*=Search]", "value": "QualiAI 测试工具", "desc": "在搜索框输入关键词", "assert": {"type": "", "expected": ""}},
+    {"step": 4, "action": "click", "selector": "button[type=submit],button:has-text('搜索'),button:has-text('Search'),svg", "value": "", "desc": "点击搜索按钮", "assert": {"type": "", "expected": ""}},
+    {"step": 5, "action": "wait", "selector": "", "value": "3000", "desc": "等待搜索结果加载", "assert": {"type": "", "expected": ""}},
+    {"step": 6, "action": "assert", "selector": "", "value": "", "desc": "验证搜索结果页包含关键词", "assert": {"type": "text_exists", "expected": "QualiAI"}},
+    {"step": 7, "action": "assert", "selector": "", "value": "", "desc": "验证搜索结果数量大于0", "assert": {"type": "element_exists", "selector": ".result, .search-result, [data-testid*=result], .g, article"}}
+  ],
+  "assertions": {
+    "ai_hints": [
+      "检查搜索结果是否包含搜索关键词",
+      "确保搜索结果列表不为空",
+      "验证页面没有显示'没有找到相关结果'或'No results'等错误",
+      "检查搜索框是否保留了输入的搜索词"
+    ],
+    "expected": {
+      "status": "search_results_shown",
+      "min_results": 1
+    }
+  }
+}
