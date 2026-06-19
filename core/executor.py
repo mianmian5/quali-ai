@@ -6,15 +6,20 @@ import os
 import time
 from typing import Optional
 
+from core.asserter import AIAsserter
+
 
 class PlaywrightExecutor:
     """Playwright 测试执行器"""
 
-    def __init__(self, headless: bool = True):
+    def __init__(self, headless: bool = True, use_ai_assert: bool = True):
         self.headless = headless
+        self.use_ai_assert = use_ai_assert
+        self.asserter = AIAsserter() if use_ai_assert else None
         self._playwright = None
         self._browser = None
         self._page = None
+        self._self_heal_count = 0
 
     def run(self, steps: list[dict]) -> list[dict]:
         """执行测试步骤列表，返回结果"""
@@ -63,7 +68,6 @@ class PlaywrightExecutor:
         value = step.get("value", "")
         desc = step.get("desc", "")
         step_num = step.get("step", 0)
-        assert_info = step.get("assert", {})
         start_time = time.time()
 
         result = {
@@ -93,9 +97,6 @@ class PlaywrightExecutor:
             elif action == "type":
                 await self._smart_type(selector, value)
 
-            elif action == "assert":
-                await self._do_assert(result, assert_info)
-
             elif action == "wait":
                 ms = min(int(value or 1000), 10000)
                 await self._page.wait_for_timeout(ms)
@@ -111,6 +112,10 @@ class PlaywrightExecutor:
             # 截图
             result["screenshot"] = await self._screenshot()
 
+            # Phase 2: AI 断言
+            if self.use_ai_assert and self.asserter and action != "assert":
+                await self._ai_judge(step, result)
+
         except Exception as e:
             result["passed"] = False
             result["reason"] = str(e)[:200]
@@ -120,8 +125,26 @@ class PlaywrightExecutor:
         result["url"] = self._page.url
         return result
 
+    async def _ai_judge(self, step: dict, result: dict) -> None:
+        """AI 综合判断步骤是否通过"""
+        page_url = self._page.url
+        page_title = await self._page.title()
+        page_content = await self._page.evaluate("document.body.innerText")
+
+        judge_result = self.asserter.judge(
+            step=step,
+            screenshot_b64=result.get("screenshot", ""),
+            page_url=page_url,
+            page_content=page_content[:3000],
+            page_title=page_title,
+        )
+        if not judge_result.get("passed"):
+            result["passed"] = False
+            result["reason"] = judge_result.get("reason", "")
+            result["reason"] += f" (AI置信度: {judge_result.get('confidence', 0)})"
+
     async def _smart_click(self, selector: str) -> None:
-        """智能点击：尝试多种选择器"""
+        """智能点击：尝试多种选择器 + AI 自修复"""
         selectors = [s.strip() for s in selector.split(",") if s.strip()]
         if not selectors:
             selectors = ["button", "a", "[type=submit]", "input[type=submit]"]
@@ -135,10 +158,27 @@ class PlaywrightExecutor:
                     return
             except Exception:
                 continue
+
+        # AI 自修复
+        if self.asserter:
+            page_content = await self._page.evaluate("document.body.innerText")
+            page_url = self._page.url
+            fixed = self.asserter.fix_selector(selector, page_content, page_url, "click")
+            if fixed:
+                try:
+                    loc = self._page.locator(fixed)
+                    if await loc.count() > 0:
+                        await loc.first.click(timeout=3000)
+                        await self._page.wait_for_timeout(1000)
+                        self._self_heal_count += 1
+                        return
+                except Exception:
+                    pass
+
         raise Exception(f"找不到可点击元素: {selector}")
 
     async def _smart_type(self, selector: str, value: str) -> None:
-        """智能输入：尝试多种选择器"""
+        """智能输入：尝试多种选择器 + AI 自修复"""
         selectors = [s.strip() for s in selector.split(",") if s.strip()]
         if not selectors:
             selectors = ["input", "textarea", "[contenteditable]"]
@@ -152,38 +192,24 @@ class PlaywrightExecutor:
                     return
             except Exception:
                 continue
+
+        # AI 自修复
+        if self.asserter:
+            page_content = await self._page.evaluate("document.body.innerText")
+            page_url = self._page.url
+            fixed = self.asserter.fix_selector(selector, page_content, page_url, "type")
+            if fixed:
+                try:
+                    loc = self._page.locator(fixed)
+                    if await loc.count() > 0:
+                        await loc.first.fill(value, timeout=3000)
+                        await self._page.wait_for_timeout(500)
+                        self._self_heal_count += 1
+                        return
+                except Exception:
+                    pass
+
         raise Exception(f"找不到可输入元素: {selector}")
-
-    async def _do_assert(self, result: dict, assert_info: dict) -> None:
-        """执行断言"""
-        assert_type = assert_info.get("type", "")
-        expected = assert_info.get("expected", "")
-
-        if not assert_type:
-            return
-
-        if assert_type == "url_contains":
-            current_url = self._page.url
-            if expected and expected not in current_url:
-                result["passed"] = False
-                result["reason"] = f"URL 不包含期望值。当前: {current_url}, 期望包含: {expected}"
-
-        elif assert_type == "text_exists":
-            body_text = await self._page.evaluate("document.body.innerText")
-            if expected and expected.lower() not in body_text.lower():
-                result["passed"] = False
-                result["reason"] = f"页面未找到期望文本: {expected}"
-
-        elif assert_type == "element_exists":
-            try:
-                el = self._page.locator(expected or "body")
-                count = await el.count()
-                if count == 0:
-                    result["passed"] = False
-                    result["reason"] = f"元素不存在: {expected}"
-            except Exception:
-                result["passed"] = False
-                result["reason"] = f"查找元素失败: {expected}"
 
     async def _screenshot(self) -> str:
         """截图返回 base64"""
