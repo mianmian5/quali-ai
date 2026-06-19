@@ -1,0 +1,8 @@
+reports/
+web/reports/
+__pycache__/
+*.pyc
+.env
+*.egg-info/
+dist/
+build/
