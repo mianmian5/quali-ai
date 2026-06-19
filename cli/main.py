@@ -9,6 +9,7 @@ import click
 from core.executor import PlaywrightExecutor
 from core.planner import AITestPlanner
 from core.reporter import HTMLReporter
+from core.adb_executor import ADBExecutor
 
 
 @click.group()
@@ -53,6 +54,37 @@ def run(description, url, model, api_key, output, scenario):
     report_dir = output or os.path.join(os.getcwd(), "reports")
     reporter = HTMLReporter(report_dir)
     report_path = reporter.generate(description or "test", steps, results)
+    click.echo("\nReport: file://" + report_path)
+
+
+@cli.command()
+@click.argument("description", required=False, default="")
+@click.option("--app", "-a", default="", help="Android App 包名")
+@click.option("--device", "-d", default="", help="ADB 设备 ID")
+@click.option("--output", "-o", default="", help="报告输出目录")
+def android(description, app, device, output):
+    """在安卓设备上运行测试"""
+    click.echo("QualiAI Android test starting")
+    click.echo("=" * 40)
+
+    planner = AITestPlanner()
+    steps = planner.plan(description, base_url=app)
+
+    click.echo("\nGenerated %d test steps:" % len(steps))
+    for s in steps:
+        click.echo("  [%d] %s: %s" % (s["step"], s["action"], s.get("desc", "")))
+
+    click.echo("\nExecuting on Android...")
+    executor = ADBExecutor(device_id=device if device else None)
+    results = executor.run(steps)
+
+    passed = sum(1 for r in results if r.get("passed"))
+    total = len(results)
+    click.echo("\nResult: %d/%d passed (%d failed)" % (passed, total, total - passed))
+
+    report_dir = output or os.path.join(os.getcwd(), "reports")
+    reporter = HTMLReporter(report_dir)
+    report_path = reporter.generate(description or "android-test", steps, results)
     click.echo("\nReport: file://" + report_path)
 
 

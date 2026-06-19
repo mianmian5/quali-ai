@@ -1,0 +1,14 @@
+{
+  "name": "安卓 App 登录测试",
+  "description": "在安卓 App 上测试登录功能",
+  "app": "com.example.app",
+  "steps": [
+    {"step": 1, "action": "navigate", "selector": "", "value": "com.example.app", "desc": "启动 App", "assert": {"type": "", "expected": ""}},
+    {"step": 2, "action": "wait", "selector": "", "value": "3000", "desc": "等待启动", "assert": {"type": "", "expected": ""}},
+    {"step": 3, "action": "click", "selector": "login button", "value": "", "desc": "点击登录按钮", "assert": {"type": "", "expected": ""}},
+    {"step": 4, "action": "type", "selector": "username input", "value": "testuser", "desc": "输入用户名", "assert": {"type": "", "expected": ""}},
+    {"step": 5, "action": "type", "selector": "password input", "value": "testpass", "desc": "输入密码", "assert": {"type": "", "expected": ""}},
+    {"step": 6, "action": "click", "selector": "confirm button", "value": "", "desc": "点击确认", "assert": {"type": "", "expected": ""}},
+    {"step": 7, "action": "assert", "selector": "", "value": "", "desc": "验证登录成功", "assert": {"type": "app_running", "expected": "home"}}
+  ]
+}

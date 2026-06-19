@@ -76,5 +76,8 @@ quali-ai/
 
 - [x] Phase 1: CLI + Planner + Executor + Reporter
 - [x] Phase 2: AI 断言 + 自修复选择器
-- [ ] Phase 3: 安卓 ADB 支持
+- [x] Phase 3: 安卓 ADB 支持
+  - ADB 设备控制 (tap/type/swipe/screenshot)
+  - AI 视觉分析 (截图定位元素)
+  - 命令: `quali android "测试登录" --app com.example.app`
 - [ ] Phase 4: WebUI 管理界面
